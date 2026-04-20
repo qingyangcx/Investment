@@ -780,7 +780,7 @@ export default function App() {
   return (
     <div style={S.app}>
       <div style={S.header}>
-        <div style={S.logo}>◆ Value Ledger</div>
+        <div style={S.logo}>◆ Invest</div>
         <nav style={S.nav}>
           {[
             ["dashboard", "Dashboard"],
@@ -801,7 +801,7 @@ export default function App() {
         {view === "data" && <DataManager data={data} onSave={save} />}
       </div>
       <div style={{ padding: "16px 24px", textAlign: "center", fontSize: 11, color: COLORS.textDim, borderTop: `1px solid ${COLORS.border}` }}>
-        Value Ledger — Built for the patient investor
+        Invest — Built for the patient investor
       </div>
     </div>
   );

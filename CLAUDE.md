@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Value Ledger** — a personal investment research tracker for value investors, inspired by Buffett/Munger philosophy. Tracks company research, DCF valuations, price targets, and portfolio holdings.
+**Invest** — a personal investment research tracker for value investors, inspired by Buffett/Munger philosophy. Tracks company research, DCF valuations, price targets, and portfolio holdings.
 
 ## Current State
 

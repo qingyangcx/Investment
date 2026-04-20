@@ -1,4 +1,4 @@
-# Value Ledger — Investment Research Tracker
+# Invest — Investment Research Tracker
 
 ## Project Brief for Claude Code
 
@@ -16,7 +16,7 @@ Build a personal investment research tracker inspired by Buffett/Munger's philos
 - **Theme**: Dark background (#0b1120), gold/amber accent (#c8a44e), muted grays
 - **Fonts**: Playfair Display (headings), DM Sans (body) — via Google Fonts
 - **Tone**: Refined, data-focused, Bloomberg terminal meets modern fintech
-- **Name**: "Value Ledger" with ◆ diamond icon
+- **Name**: "Invest" with ◆ diamond icon
 
 ### Features
 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { COLORS } from "./theme/colors";
 import { FONT_BODY } from "./theme/fonts";
 import { TopBar } from "./components/layout/TopBar";
@@ -9,10 +9,18 @@ import { AddCompany } from "./components/company/AddCompany";
 import { useCompanies } from "./hooks/useCompanies";
 import { useGroups } from "./hooks/useGroups";
 import { useQuotes } from "./hooks/useQuotes";
-import { useChecklist } from "./hooks/useChecklist";
+import { useCriteria } from "./hooks/useCriteria";
+import { useStrategies } from "./hooks/useStrategies";
+import { useSignalRules } from "./hooks/useSignalRules";
+import { useMetricSettings } from "./hooks/useMetricSettings";
+import { useWatchHistory } from "./hooks/useWatchHistory";
 import { useAuth } from "./hooks/useAuth";
 import { ChecklistView } from "./views/ChecklistView";
+import { ScreenerView } from "./views/ScreenerView";
+import { SignalsView } from "./views/SignalsView";
+import { SettingsView } from "./views/SettingsView";
 import { AuthScreen } from "./components/auth/AuthScreen";
+import { computeSignals } from "./utils/signals";
 
 export default function App() {
   const { user, loading, error: authError, login, register, logout, resetPassword } = useAuth();
@@ -25,8 +33,45 @@ export default function App() {
   const userId = user?.uid;
   const { companies, addCompany, updateCompany, deleteCompany, reorderCompanies } = useCompanies(userId);
   const { groups, addGroup, deleteGroup } = useGroups(userId);
-  const quotes = useQuotes(companies.map((c) => c.ticker).filter(Boolean));
-  const { items: checklistItems, addItem, toggleItem, updateItem, deleteItem } = useChecklist(userId);
+  const watchTickers = companies.map((c) => c.ticker).filter(Boolean);
+  const quotes = useQuotes(watchTickers);
+  const { criteria, addCriterion, updateCriterion, deleteCriterion } = useCriteria(userId);
+  const { strategies, createStrategy, updateStrategy, deleteStrategy } = useStrategies(userId);
+  const { rules: signalRules, addRule: addSignalRule, updateRule: updateSignalRule, deleteRule: deleteSignalRule } = useSignalRules(userId);
+  const { settings: metricSettings, addMetric, removeMetric } = useMetricSettings(userId);
+
+  // One-time migration: criteria with both an expr and a signal field move to signalRules.
+  const migratedRef = useRef(new Set());
+  useEffect(() => {
+    if (!userId) return;
+    for (const c of criteria) {
+      if (!c.expr || !c.signal) continue;
+      if (migratedRef.current.has(c.id)) continue;
+      migratedRef.current.add(c.id);
+      addSignalRule({
+        id: c.id,
+        name: c.text || "Migrated rule",
+        expr: c.expr,
+        signal: c.signal,
+        category: c.category || "General",
+      });
+      updateCriterion(c.id, { signal: null });
+    }
+  }, [userId, criteria, addSignalRule, updateCriterion]);
+
+  const hasSignalRules = signalRules.length > 0;
+  const histories = useWatchHistory(hasSignalRules ? watchTickers : []);
+  const signals = useMemo(() => {
+    if (!hasSignalRules) return {};
+    const out = {};
+    for (const c of companies) {
+      if (!c.ticker) continue;
+      const h = histories[c.ticker];
+      if (!h) continue;
+      out[c.id] = computeSignals(signalRules, h);
+    }
+    return out;
+  }, [companies, signalRules, histories, hasSignalRules]);
 
   const handleAdd = useCallback(() => {
     setShowAddSearch(true);
@@ -102,16 +147,20 @@ export default function App() {
         minHeight: "100vh",
       }}
     >
-      <TopBar onLogout={logout} />
-      <GroupTabs
-        groups={groups}
-        activeGroup={activeGroup}
-        onSelect={setActiveGroup}
-        onAddGroup={addGroup}
-        onDeleteGroup={handleDeleteGroup}
-        onSearch={handleAdd}
-      />
-      <div style={{ paddingTop: 100, paddingBottom: 70 }}>
+      {activeTab === "company" && (
+        <>
+          <TopBar onLogout={logout} />
+          <GroupTabs
+            groups={groups}
+            activeGroup={activeGroup}
+            onSelect={setActiveGroup}
+            onAddGroup={addGroup}
+            onDeleteGroup={handleDeleteGroup}
+            onSearch={handleAdd}
+          />
+        </>
+      )}
+      <div style={{ paddingTop: activeTab === "company" ? 100 : 16, paddingBottom: 70 }}>
         {activeTab === "company" && (
           <CompanyView
             companies={companies}
@@ -124,15 +173,41 @@ export default function App() {
             allGroups={groups}
             quotes={quotes}
             onReorder={reorderCompanies}
+            criteria={criteria}
+            signals={signals}
           />
         )}
         {activeTab === "checklist" && (
           <ChecklistView
-            items={checklistItems}
-            onAdd={addItem}
-            onToggle={toggleItem}
-            onUpdate={updateItem}
-            onDelete={deleteItem}
+            criteria={criteria}
+            onAdd={addCriterion}
+            onUpdate={updateCriterion}
+            onDelete={deleteCriterion}
+          />
+        )}
+        {activeTab === "screener" && (
+          <ScreenerView
+            strategies={strategies}
+            createStrategy={createStrategy}
+            updateStrategy={updateStrategy}
+            deleteStrategy={deleteStrategy}
+            existingTickers={companies.map((c) => c.ticker).filter(Boolean)}
+            onAddToWatch={(ticker) => addCompany({ ticker, name: ticker })}
+          />
+        )}
+        {activeTab === "signals" && (
+          <SignalsView
+            rules={signalRules}
+            onAdd={addSignalRule}
+            onUpdate={updateSignalRule}
+            onDelete={deleteSignalRule}
+          />
+        )}
+        {activeTab === "settings" && (
+          <SettingsView
+            metricSettings={metricSettings}
+            addMetric={addMetric}
+            removeMetric={removeMetric}
           />
         )}
       </div>

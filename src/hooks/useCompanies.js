@@ -42,6 +42,7 @@ const EMPTY_COMPANY = {
   buyPlan: { totalBudget: null, currency: "USD", rows: [] },
   actualBuys: [],
   actualCurrency: "USD",
+  scorecard: {},
 };
 
 export function useCompanies(userId) {

@@ -1,14 +1,16 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { COLORS } from "../../theme/colors";
 import { FONT_BODY } from "../../theme/fonts";
 import { CompanyCard } from "./CompanyCard";
 import { EmptyState } from "../shared/EmptyState";
+import { computeScore } from "../../utils/scorecard";
 
 const LONG_PRESS_MS = 400;
 const MOVE_CANCEL_PX = 8;
 
-export function CompanyList({ companies, activeGroup, onSelect, quotes = {}, onReorder }) {
+export function CompanyList({ companies, activeGroup, onSelect, quotes = {}, onReorder, criteria = [], signals = {} }) {
   const [search, setSearch] = useState("");
+  const [sortByScore, setSortByScore] = useState(false);
   const [draggingId, setDraggingId] = useState(null);
   const [dragOffset, setDragOffset] = useState(0);
 
@@ -17,16 +19,30 @@ export function CompanyList({ companies, activeGroup, onSelect, quotes = {}, onR
   const pressRef = useRef(null); // { id, timer, startX, startY, activated, startCenterY }
   const suppressClickRef = useRef(false);
 
-  const filtered = companies.filter((c) => {
-    if (activeGroup && !c.groupIds?.includes(activeGroup)) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return c.ticker.toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
-    }
-    return true;
-  });
+  const filtered = useMemo(() => {
+    const base = companies.filter((c) => {
+      if (activeGroup && !c.groupIds?.includes(activeGroup)) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return c.ticker.toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
+      }
+      return true;
+    });
+    if (!sortByScore || criteria.length === 0) return base;
+    return [...base].sort((a, b) => {
+      const sa = computeScore(criteria, a.scorecard);
+      const sb = computeScore(criteria, b.scorecard);
+      const ra = sa.ratio ?? -1;
+      const rb = sb.ratio ?? -1;
+      if (rb !== ra) return rb - ra;
+      const aAns = sa.passed + sa.failed;
+      const bAns = sb.passed + sb.failed;
+      return bAns - aAns;
+    });
+  }, [companies, activeGroup, search, sortByScore, criteria]);
 
-  const reorderEnabled = !!onReorder && !search && !activeGroup;
+  const reorderEnabled = !!onReorder && !search && !activeGroup && !sortByScore;
+  const hasCriteria = criteria.length > 0;
 
   useEffect(() => {
     const onMove = (e) => {
@@ -129,7 +145,7 @@ export function CompanyList({ companies, activeGroup, onSelect, quotes = {}, onR
 
   return (
     <div>
-      <div style={{ padding: "0 16px 8px" }}>
+      <div style={{ padding: "0 16px 8px", display: "flex", gap: 8 }}>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -142,11 +158,33 @@ export function CompanyList({ companies, activeGroup, onSelect, quotes = {}, onR
             border: `1px solid ${COLORS.border}`,
             borderRadius: 10,
             padding: "10px 14px",
-            width: "100%",
+            flex: 1,
+            minWidth: 0,
             outline: "none",
             boxSizing: "border-box",
           }}
         />
+        {hasCriteria && (
+          <button
+            onClick={() => setSortByScore((v) => !v)}
+            title={sortByScore ? "Sorted by checklist pass-rate" : "Sort by checklist pass-rate"}
+            style={{
+              fontFamily: FONT_BODY,
+              fontSize: 12,
+              fontWeight: 600,
+              color: sortByScore ? COLORS.bg : COLORS.gold,
+              background: sortByScore ? COLORS.gold : COLORS.surfaceLight,
+              border: `1px solid ${sortByScore ? COLORS.gold : COLORS.border}`,
+              borderRadius: 10,
+              padding: "0 12px",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            ★ Score
+          </button>
+        )}
       </div>
       <div ref={containerRef} style={{ padding: "0 16px" }}>
         {filtered.length > 0 && (
@@ -202,6 +240,8 @@ export function CompanyList({ companies, activeGroup, onSelect, quotes = {}, onR
                   company={c}
                   quote={quotes[c.ticker]}
                   onClick={() => handleClick(c.id)}
+                  criteria={criteria}
+                  signals={signals[c.id]}
                 />
               </div>
             );

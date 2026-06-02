@@ -4,6 +4,9 @@ import { FONT_BODY } from "../../theme/fonts";
 const TABS = [
   { key: "company", label: "Company", icon: "◇" },
   { key: "checklist", label: "Checklist", icon: "☑" },
+  { key: "signals", label: "Signals", icon: "⚡" },
+  { key: "screener", label: "Screener", icon: "▼" },
+  { key: "settings", label: "Settings", icon: "⚙" },
 ];
 
 export function BottomNav({ active, onSelect }) {
@@ -38,7 +41,7 @@ export function BottomNav({ active, onSelect }) {
               alignItems: "center",
               gap: 2,
               cursor: "pointer",
-              padding: "6px 16px",
+              padding: "6px 10px",
             }}
           >
             <span style={{ fontSize: 20, color: isActive ? COLORS.gold : COLORS.textDim }}>

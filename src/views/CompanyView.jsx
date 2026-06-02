@@ -12,6 +12,8 @@ export function CompanyView({
   allGroups,
   quotes,
   onReorder,
+  criteria = [],
+  signals = {},
 }) {
   const company = selectedId ? companies.find((c) => c.id === selectedId) : null;
 
@@ -23,6 +25,8 @@ export function CompanyView({
         onSelect={onSelect}
         quotes={quotes}
         onReorder={onReorder}
+        criteria={criteria}
+        signals={signals}
       />
       {company && (
         <CompanyDetail
@@ -32,6 +36,7 @@ export function CompanyView({
           onDelete={onDelete}
           onClose={onClose}
           allGroups={allGroups}
+          criteria={criteria}
         />
       )}
     </>

@@ -4,8 +4,10 @@ import { FONT_BODY, FONT_HEADING } from "../../theme/fonts";
 import { Field } from "../shared/Field";
 import { uid } from "../../utils/uid";
 import { getRates, convert } from "../../utils/fx";
+import { ScorecardTab } from "./ScorecardTab";
+import { useHistory } from "../../hooks/useHistory";
 
-const TABS = ["TRADE", "Profile"];
+const TABS = ["TRADE", "Score", "Profile"];
 
 const numOrNull = (v) => {
   if (v === "" || v == null) return null;
@@ -635,10 +637,14 @@ function ProfileTab({ form, setField, allGroups }) {
   );
 }
 
-export function CompanyDetail({ company, quote, onSave, onDelete, onClose, allGroups }) {
+export function CompanyDetail({ company, quote, onSave, onDelete, onClose, allGroups, criteria = [] }) {
   const [form, setForm] = useState({ ...company });
   const [activeTab, setActiveTab] = useState("TRADE");
   const firstRenderRef = useRef(true);
+  const hasFormulaCriteria = criteria.some((c) => c.expr);
+  const { history, loading: historyLoading, error: historyError } = useHistory(
+    hasFormulaCriteria ? company.ticker : null
+  );
 
   const setField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -740,6 +746,16 @@ export function CompanyDetail({ company, quote, onSave, onDelete, onClose, allGr
       {/* Content */}
       <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
         {activeTab === "TRADE" && <InvestPlanTab form={form} setField={setField} stockCurrency={quote?.currency || "USD"} currentPrice={quote?.price ?? null} />}
+        {activeTab === "Score" && (
+          <ScorecardTab
+            criteria={criteria}
+            scorecard={form.scorecard || {}}
+            onChange={(next) => setField("scorecard", next)}
+            history={history}
+            historyLoading={historyLoading}
+            historyError={historyError}
+          />
+        )}
         {activeTab === "Profile" && <ProfileTab form={form} setField={setField} allGroups={allGroups} />}
       </div>
 
